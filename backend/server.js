@@ -27,8 +27,24 @@ const server = http.createServer(app);
 const io = initializeSocket(server);
 
 // Middleware
+// Configure CORS to support one or more allowed origins provided via CLIENT_URL
+// You can provide a single origin like 'https://app.example.com' or a comma-separated
+// list: 'https://app.example.com,http://localhost:5173'
+const clientUrlEnv = process.env.CLIENT_URL || 'http://localhost:5173';
+const allowedOrigins = clientUrlEnv.split(',').map((s) => s.trim()).filter(Boolean);
+
+// Log allowed origins at startup for easier debugging
+console.log('Allowed CORS origins:', allowedOrigins);
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow non-browser requests (e.g. curl, Postman) which have no origin
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS policy: origin '${origin}' not allowed`));
+  },
   credentials: true
 }));
 app.use(express.json());
